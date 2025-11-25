@@ -127,11 +127,20 @@ class AIServiceRegistry:
     def get_all_providers(self) -> Dict[str, AIServiceProvider]:
         """
         Get all registered providers.
-        
+
         Returns:
             Dictionary mapping provider names to provider instances
         """
         return self._providers.copy()
+
+    def get_available_providers(self) -> List[str]:
+        """
+        Get list of all available provider names.
+
+        Returns:
+            List of provider names
+        """
+        return list(self._providers.keys())
     
     def get_provider_capabilities(self, provider_name: str) -> Dict[str, any]:
         """

@@ -12,12 +12,10 @@ Available Providers:
 - AnthropicProvider: Anthropic Claude Vision integration
 """
 
-from .mock_provider import MockAIProvider
 from .base_provider import BaseAIProvider
-from .openai_provider import OpenAIProvider
+from .gemini_provider import GeminiProvider
 
 __all__ = [
-    'MockAIProvider',
     'BaseAIProvider',
-    'OpenAIProvider'
+    'GeminiProvider'
 ]

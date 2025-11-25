@@ -13,28 +13,51 @@ const ResultDetailPage = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    let pollInterval;
+
     const fetchRequestDetails = async () => {
       try {
-        setIsLoading(true);
         const data = await getVisualizationRequestById(id);
         setRequest(data);
         setError(null);
+
+        // Stop polling if complete or failed
+        if (data.status === 'complete' || data.status === 'failed') {
+          setIsLoading(false);
+          return true; // Stop polling
+        }
       } catch (err) {
         console.error(`Error fetching visualization request #${id}:`, err);
         if (err.response?.status === 404) {
           setError(`Visualization request #${id} not found.`);
+          return true; // Stop polling
         } else {
-          setError('Failed to load visualization request details. Please try again later.');
+          // Don't set error on poll failure, just log it
+          if (isLoading) {
+            setError('Failed to load visualization request details. Please try again later.');
+          }
         }
       } finally {
         setIsLoading(false);
       }
+      return false; // Continue polling
     };
 
+    // Initial fetch
     fetchRequestDetails();
+
+    // Set up polling
+    pollInterval = setInterval(async () => {
+      const shouldStop = await fetchRequestDetails();
+      if (shouldStop) {
+        clearInterval(pollInterval);
+      }
+    }, 3000); // Poll every 3 seconds
+
+    return () => clearInterval(pollInterval);
   }, [id]);
 
-  if (isLoading) {
+  if (isLoading && !request) {
     return (
       <div className="result-detail-page loading">
         <h1>Result Details</h1>
@@ -58,6 +81,11 @@ const ResultDetailPage = () => {
     );
   }
 
+  // Get the first result image if available
+  const resultImageUrl = request.results && request.results.length > 0
+    ? request.results[0].generated_image_url
+    : null;
+
   return (
     <div className="result-detail-page">
       <h1>Visualization Request #{id}</h1>
@@ -70,7 +98,7 @@ const ResultDetailPage = () => {
 
         <div className="detail-row">
           <span className="detail-label">Screen Type:</span>
-          <span>{request.screen_type_name || 'Unknown'}</span>
+          <span>{request.screen_type_details?.name || 'Unknown'}</span>
         </div>
 
         <div className="detail-row">
@@ -78,17 +106,17 @@ const ResultDetailPage = () => {
           <span>{new Date(request.created_at).toLocaleString()}</span>
         </div>
 
-        {request.completed_at && (
+        {request.processing_completed_at && (
           <div className="detail-row">
             <span className="detail-label">Completed:</span>
-            <span>{new Date(request.completed_at).toLocaleString()}</span>
+            <span>{new Date(request.processing_completed_at).toLocaleString()}</span>
           </div>
         )}
       </div>
 
       <ResultsDisplay
-        originalImage={request.image}
-        resultImage={request.result_image}
+        originalImage={request.original_image_url}
+        resultImage={resultImageUrl}
         status={request.status}
       />
 

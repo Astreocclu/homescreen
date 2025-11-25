@@ -27,6 +27,10 @@ class AIServiceConfigManager:
         self._configs: Dict[str, AIServiceConfig] = {}
         self._load_default_configs()
 
+    def load_configs(self):
+        """Public method to reload configurations."""
+        self._load_default_configs()
+
     def _load_default_configs(self):
         """Load default configurations for known AI services."""
         try:

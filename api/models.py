@@ -17,7 +17,7 @@ def validate_image_size(image):
 
 def validate_image_dimensions(image):
     """Validate image dimensions."""
-    max_width, max_height = 4096, 4096
+    max_width, max_height = 8192, 8192
     try:
         img = Image.open(image)
         if img.width > max_width or img.height > max_height:
@@ -118,7 +118,7 @@ class ScreenType(models.Model):
     name = models.CharField(
         max_length=100,
         unique=True,
-        help_text="Screen type name (e.g., Security, Solar, Insect)"
+        help_text="Screen type name (e.g., Security, Lifestyle)"
     )
     description = models.TextField(
         blank=True,
@@ -225,6 +225,20 @@ class VisualizationRequest(models.Model):
         blank=True,
         related_name='visualization_requests',
         help_text="Type of screen to overlay"
+    )
+    opacity = models.CharField(
+        max_length=10,
+        choices=[('80', '80%'), ('95', '95%'), ('99', '99%')],
+        null=True,
+        blank=True,
+        help_text="Screen opacity percentage"
+    )
+    color = models.CharField(
+        max_length=50,
+        choices=[('Black', 'Black'), ('Dark Bronze', 'Dark Bronze'), ('Stucco', 'Stucco')],
+        null=True,
+        blank=True,
+        help_text="Screen frame/fabric color"
     )
     status = models.CharField(
         max_length=20,

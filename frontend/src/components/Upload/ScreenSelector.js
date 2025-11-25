@@ -11,10 +11,12 @@ const ScreenSelector = ({ onSelect, selectedScreenTypeId }) => {
     const fetchScreenTypes = async () => {
       try {
         setIsLoading(true);
-        const data = await getScreenTypes();
+        const response = await getScreenTypes();
+        // Handle paginated response (DRF returns { results: [...] }) or flat array
+        const data = response.results || response;
         setScreenTypes(data);
         setError(null);
-        
+
         // If no screen type is selected and we have screen types, select the first one
         if (!selectedScreenTypeId && data.length > 0) {
           onSelect(data[0].id);
@@ -50,9 +52,9 @@ const ScreenSelector = ({ onSelect, selectedScreenTypeId }) => {
   return (
     <div className="screen-selector">
       <label htmlFor="screen-type">Select Screen Type:</label>
-      <select 
-        id="screen-type" 
-        value={selectedScreenTypeId || ''} 
+      <select
+        id="screen-type"
+        value={selectedScreenTypeId || ''}
         onChange={handleChange}
       >
         {screenTypes.map((type) => (
@@ -61,7 +63,7 @@ const ScreenSelector = ({ onSelect, selectedScreenTypeId }) => {
           </option>
         ))}
       </select>
-      
+
       {selectedScreenTypeId && (
         <div className="selected-screen-info">
           {screenTypes.find(type => type.id === selectedScreenTypeId)?.description && (

@@ -105,6 +105,8 @@ const LoginForm = ({ onLogin, error }) => {
 const ImageUploadView = ({ user, screenTypes, onBack }) => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [selectedScreenType, setSelectedScreenType] = useState('');
+  const [selectedOpacity, setSelectedOpacity] = useState('95');
+  const [selectedColor, setSelectedColor] = useState('Black');
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState('');
   const [dragOver, setDragOver] = useState(false);
@@ -197,6 +199,8 @@ const ImageUploadView = ({ user, screenTypes, onBack }) => {
       const formData = new FormData();
       formData.append('original_image', selectedFile);
       formData.append('screen_type', selectedScreenType);
+      formData.append('opacity', selectedOpacity);
+      formData.append('color', selectedColor);
 
       const token = localStorage.getItem('access_token');
       const response = await fetch('/api/visualizations/', {
@@ -273,29 +277,73 @@ const ImageUploadView = ({ user, screenTypes, onBack }) => {
         </div>
 
         {/* Screen Type Selection */}
-        <div>
-          <label style={{ display: 'block', marginBottom: '10px', fontWeight: 'bold' }}>
-            Select Screen Type:
-          </label>
-          <select
-            value={selectedScreenType}
-            onChange={(e) => setSelectedScreenType(e.target.value)}
-            required
-            style={{
-              width: '100%',
-              padding: '12px',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              fontSize: '16px'
-            }}
-          >
-            <option value="">Choose a screen type...</option>
-            {screenTypes.map(type => (
-              <option key={type.id} value={type.id}>
-                {type.name} - {type.description}
-              </option>
-            ))}
-          </select>
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px' }}>
+          <div>
+            <label style={{ display: 'block', marginBottom: '10px', fontWeight: 'bold' }}>
+              Select Screen Type:
+            </label>
+            <select
+              value={selectedScreenType}
+              onChange={(e) => setSelectedScreenType(e.target.value)}
+              required
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                fontSize: '16px'
+              }}
+            >
+              <option value="">Choose a screen type...</option>
+              {screenTypes.map(type => (
+                <option key={type.id} value={type.id}>
+                  {type.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: '10px', fontWeight: 'bold' }}>
+              Select Opacity:
+            </label>
+            <select
+              value={selectedOpacity}
+              onChange={(e) => setSelectedOpacity(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                fontSize: '16px'
+              }}
+            >
+              <option value="80">80%</option>
+              <option value="95">95%</option>
+              <option value="99">99%</option>
+            </select>
+          </div>
+
+          <div>
+            <label style={{ display: 'block', marginBottom: '10px', fontWeight: 'bold' }}>
+              Select Color:
+            </label>
+            <select
+              value={selectedColor}
+              onChange={(e) => setSelectedColor(e.target.value)}
+              style={{
+                width: '100%',
+                padding: '12px',
+                border: '1px solid #ddd',
+                borderRadius: '4px',
+                fontSize: '16px'
+              }}
+            >
+              <option value="Black">Black</option>
+              <option value="Dark Bronze">Dark Bronze</option>
+              <option value="Stucco">Stucco</option>
+            </select>
+          </div>
         </div>
 
         {/* Progress Bar */}
@@ -385,8 +433,8 @@ const ImageUploadView = ({ user, screenTypes, onBack }) => {
           }}
         >
           {uploading ? '⏳ Uploading...' :
-           processingRequest ? '🔄 Processing...' :
-           '🚀 Generate Visualization'}
+            processingRequest ? '🔄 Processing...' :
+              '🚀 Generate Visualization'}
         </button>
       </form>
     </div>
@@ -624,46 +672,46 @@ const Dashboard = ({ user, onLogout }) => {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
-        <div style={{ backgroundColor: '#f8f9fa', padding: '20px', borderRadius: '8px', border: '1px solid #dee2e6' }}>
-          <h3>👤 User Profile</h3>
-          <p><strong>Username:</strong> {user.username}</p>
-          <p><strong>Email:</strong> {user.email}</p>
-          <p><strong>Member since:</strong> {new Date(user.date_joined).toLocaleDateString()}</p>
-          <p><strong>Total Requests:</strong> {user.profile?.total_requests || 0}</p>
-        </div>
+            <div style={{ backgroundColor: '#f8f9fa', padding: '20px', borderRadius: '8px', border: '1px solid #dee2e6' }}>
+              <h3>👤 User Profile</h3>
+              <p><strong>Username:</strong> {user.username}</p>
+              <p><strong>Email:</strong> {user.email}</p>
+              <p><strong>Member since:</strong> {new Date(user.date_joined).toLocaleDateString()}</p>
+              <p><strong>Total Requests:</strong> {user.profile?.total_requests || 0}</p>
+            </div>
 
-        <div style={{ backgroundColor: '#f8f9fa', padding: '20px', borderRadius: '8px', border: '1px solid #dee2e6' }}>
-          <h3>🚀 Quick Actions</h3>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            <button
-              onClick={() => setCurrentView('upload')}
-              style={{ padding: '10px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-            >
-              📤 Upload Image
-            </button>
-            <button
-              onClick={() => setCurrentView('results')}
-              style={{ padding: '10px', backgroundColor: '#17a2b8', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-            >
-              📊 View Results
-            </button>
-            <button
-              onClick={() => setCurrentView('screentypes')}
-              style={{ padding: '10px', backgroundColor: '#6f42c1', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-            >
-              🖥️ Screen Types ({screenTypes.length})
-            </button>
+            <div style={{ backgroundColor: '#f8f9fa', padding: '20px', borderRadius: '8px', border: '1px solid #dee2e6' }}>
+              <h3>🚀 Quick Actions</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                <button
+                  onClick={() => setCurrentView('upload')}
+                  style={{ padding: '10px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                >
+                  📤 Upload Image
+                </button>
+                <button
+                  onClick={() => setCurrentView('results')}
+                  style={{ padding: '10px', backgroundColor: '#17a2b8', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                >
+                  📊 View Results
+                </button>
+                <button
+                  onClick={() => setCurrentView('screentypes')}
+                  style={{ padding: '10px', backgroundColor: '#6f42c1', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                >
+                  🖥️ Screen Types ({screenTypes.length})
+                </button>
+              </div>
+            </div>
+
+            <div style={{ backgroundColor: '#f8f9fa', padding: '20px', borderRadius: '8px', border: '1px solid #dee2e6' }}>
+              <h3>📊 API Status</h3>
+              <p>✅ Authentication: Working</p>
+              <p>✅ Backend API: Connected</p>
+              <p>✅ Screen Types: 3 available</p>
+              <p>✅ Database: Connected</p>
+            </div>
           </div>
-        </div>
-
-        <div style={{ backgroundColor: '#f8f9fa', padding: '20px', borderRadius: '8px', border: '1px solid #dee2e6' }}>
-          <h3>📊 API Status</h3>
-          <p>✅ Authentication: Working</p>
-          <p>✅ Backend API: Connected</p>
-          <p>✅ Screen Types: 3 available</p>
-          <p>✅ Database: Connected</p>
-        </div>
-      </div>
 
           <div style={{ marginTop: '30px', padding: '20px', backgroundColor: '#fff3cd', borderRadius: '8px', border: '1px solid #ffeaa7' }}>
             <h3>🎯 Next Steps:</h3>

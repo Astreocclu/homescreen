@@ -127,6 +127,18 @@ class VisualizationRequestViewSet(viewsets.ModelViewSet):
         return obj
 
     @transaction.atomic
+    def create(self, request, *args, **kwargs):
+        """Override create to log validation errors."""
+        serializer = self.get_serializer(data=request.data)
+        if not serializer.is_valid():
+            logger.error(f"Validation failed: {serializer.errors}")
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        self.perform_create(serializer)
+        headers = self.get_success_headers(serializer.data)
+        return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    @transaction.atomic
     def perform_create(self, serializer):
         """
         Create a new visualization request with proper error handling.
@@ -214,21 +226,13 @@ class VisualizationRequestViewSet(viewsets.ModelViewSet):
         def process_in_background():
             """Process the image in a background thread using AI services."""
             try:
-                # Use AI-enhanced processor
+                # Use AI-enhanced processor (Gemini)
                 processor = AIEnhancedImageProcessor()
                 generated_images = processor.process_image(instance)
                 logger.info(f"Successfully processed request {instance.id} with AI enhancement, generated {len(generated_images)} images")
             except Exception as e:
                 logger.error(f"Error in AI processing for request {instance.id}: {str(e)}")
-                # Fallback to basic processor if AI processing fails
-                try:
-                    from .image_processor import HomescreenImageProcessor
-                    fallback_processor = HomescreenImageProcessor()
-                    generated_images = fallback_processor.process_image(instance)
-                    logger.info(f"Fallback processing successful for request {instance.id}, generated {len(generated_images)} images")
-                except Exception as fallback_error:
-                    logger.error(f"Fallback processing also failed for request {instance.id}: {str(fallback_error)}")
-                    instance.mark_as_failed(str(fallback_error))
+                instance.mark_as_failed(str(e))
 
         # Start processing in background thread
         thread = threading.Thread(target=process_in_background)

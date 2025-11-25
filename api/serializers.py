@@ -169,7 +169,7 @@ class VisualizationRequestDetailSerializer(serializers.ModelSerializer):
             'processing_started_at', 'processing_completed_at', 'processing_duration',
             'error_message', 'progress_percentage', 'status_message',
             # Write-only fields for creation
-            'original_image', 'screen_type'
+            'original_image', 'screen_type', 'opacity', 'color'
         ]
         read_only_fields = [
             'id', 'user', 'status', 'created_at', 'updated_at', 'task_id',
@@ -218,7 +218,7 @@ class VisualizationRequestDetailSerializer(serializers.ModelSerializer):
                 image = Image.open(value)
 
                 # Check dimensions
-                max_width, max_height = 4096, 4096
+                max_width, max_height = 8192, 8192
                 if image.width > max_width or image.height > max_height:
                     raise ValidationError(
                         f"Image dimensions too large. Maximum: {max_width}x{max_height}px. "
@@ -267,7 +267,7 @@ class VisualizationRequestCreateSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = VisualizationRequest
-        fields = ['id', 'original_image', 'screen_type', 'status', 'progress_percentage', 'status_message', 'created_at']
+        fields = ['id', 'original_image', 'screen_type', 'opacity', 'color', 'status', 'progress_percentage', 'status_message', 'created_at']
         read_only_fields = ['id', 'status', 'progress_percentage', 'status_message', 'created_at']
         extra_kwargs = {
             'original_image': {'required': True},

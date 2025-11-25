@@ -21,7 +21,7 @@ const ResultsDisplay = ({ originalImage, resultImage, status }) => {
         
         <div className="image-card">
           <h3>Visualization Result</h3>
-          {status === 'completed' && resultImage ? (
+          {status === 'complete' && resultImage ? (
             <img 
               src={resultImage} 
               alt="Result" 
