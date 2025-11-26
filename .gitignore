@@ -119,3 +119,6 @@ media/screen_references/*/*.JPEG
 media/screen_references/*/*.PNG
 !media/screen_references/README.md
 !media/screen_references/*/README.md
+
+# Conversation Exports
+conversation_export_*.md
