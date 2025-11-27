@@ -218,6 +218,12 @@ class VisualizationRequest(models.Model):
         ],
         help_text="Original image to be processed"
     )
+    clean_image = models.ImageField(
+        upload_to=upload_to_generated,
+        null=True,
+        blank=True,
+        help_text="Intermediate cleaned image (Step 1)"
+    )
     screen_type = models.ForeignKey(
         ScreenType,
         on_delete=models.SET_NULL,
@@ -409,6 +415,11 @@ class GeneratedImage(models.Model):
         null=True,
         blank=True,
         help_text="Image height in pixels"
+    )
+    metadata = models.JSONField(
+        default=dict,
+        blank=True,
+        help_text="Additional metadata (e.g., quality score, generation params)"
     )
     generated_at = models.DateTimeField(auto_now_add=True)
 

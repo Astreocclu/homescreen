@@ -118,11 +118,23 @@ class AIEnhancedImageProcessor:
                 
                 # Save the result
                 image_data = result.metadata.get('generated_image_data')
+                clean_image_data = result.metadata.get('clean_image_data')
+                
+                if clean_image_data:
+                    # Save clean image to the request
+                    clean_filename = f"clean_{visualization_request.id}.jpg"
+                    visualization_request.clean_image.save(
+                        clean_filename,
+                        ContentFile(clean_image_data),
+                        save=True
+                    )
+
                 if image_data:
                     saved_images = self._save_generated_image(
                         image_data, 
                         variation_name, 
-                        visualization_request
+                        visualization_request,
+                        metadata=result.metadata
                     )
                     
                 visualization_request.mark_as_complete()
@@ -142,7 +154,8 @@ class AIEnhancedImageProcessor:
         self,
         image_data: bytes,
         variation: str,
-        request
+        request,
+        metadata: Dict[str, Any] = None
     ) -> List:
         """
         Save generated image and create GeneratedImage record.
@@ -155,6 +168,11 @@ class AIEnhancedImageProcessor:
 
             # Create GeneratedImage record
             generated_image = GeneratedImage(request=request)
+            if metadata:
+                # Filter out binary data from metadata
+                clean_metadata = {k: v for k, v in metadata.items() if k != 'generated_image_data'}
+                generated_image.metadata = clean_metadata
+                
             generated_image.generated_image.save(
                 filename,
                 ContentFile(image_data),

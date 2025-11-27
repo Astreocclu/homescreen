@@ -96,7 +96,7 @@ class GeminiImageGenerationService(AIImageGenerationService):
                 opacity = "95"
 
             # Run the pipeline
-            result_image = self.visualizer.process_pipeline(
+            clean_image, result_image, quality_score = self.visualizer.process_pipeline(
                 original_image, 
                 mesh_type,
                 opacity=opacity,
@@ -108,11 +108,20 @@ class GeminiImageGenerationService(AIImageGenerationService):
             output = io.BytesIO()
             result_image.save(output, format='JPEG', quality=85)
             image_data = output.getvalue()
+
+            # Convert clean image to bytes
+            clean_output = io.BytesIO()
+            clean_image.save(clean_output, format='JPEG', quality=85)
+            clean_image_data = clean_output.getvalue()
             
             return AIServiceResult(
                 success=True,
                 status=ProcessingStatus.COMPLETED,
-                metadata={"generated_image_data": image_data}
+                metadata={
+                    "generated_image_data": image_data,
+                    "clean_image_data": clean_image_data,
+                    "quality_score": quality_score
+                }
             )
             
         except ScreenVisualizerError as e:

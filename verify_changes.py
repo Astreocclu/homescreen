@@ -16,10 +16,10 @@ def verify_changes():
     # 1. Check Model Fields
     print("\n1. Checking Model Fields...")
     fields = [f.name for f in VisualizationRequest._meta.get_fields()]
-    if 'opacity' in fields and 'color' in fields:
-        print("✅ 'opacity' and 'color' fields found in VisualizationRequest model.")
+    if 'opacity' in fields and 'color' in fields and 'clean_image' in fields:
+        print("✅ 'opacity', 'color', and 'clean_image' fields found in VisualizationRequest model.")
     else:
-        print("❌ Missing fields in VisualizationRequest model.")
+        print(f"❌ Missing fields in VisualizationRequest model. Found: {fields}")
         return
 
     # 2. Check Serializer Validation
@@ -27,7 +27,10 @@ def verify_changes():
     
     # Create dummy user and screen type
     user, _ = User.objects.get_or_create(username='test_verifier')
-    screen_type, _ = ScreenType.objects.get_or_create(name='Lifestyle', is_active=True)
+    screen_type, _ = ScreenType.objects.update_or_create(
+        name='Lifestyle',
+        defaults={'is_active': True}
+    )
     
     # Create dummy image
     from PIL import Image

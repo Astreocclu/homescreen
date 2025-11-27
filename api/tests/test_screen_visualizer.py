@@ -3,7 +3,7 @@ Tests for ScreenVisualizer
 """
 
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import MagicMock, patch, ANY
 from PIL import Image
 import os
 import sys
@@ -38,31 +38,33 @@ class TestScreenVisualizer(unittest.TestCase):
         self.visualizer._analyze_structure = MagicMock(return_value=True) # Force build out
         self.visualizer.step_2_build_out = MagicMock(return_value=self.mock_image)
         self.visualizer.step_3_install_screen = MagicMock(return_value=self.mock_image)
-        self.visualizer.step_4_quality_check = MagicMock(return_value=True)
+        self.visualizer.step_4_quality_check = MagicMock(return_value=(True, 95))
 
-        result = self.visualizer.process_pipeline(self.mock_image, mesh_type="solar")
+        result_img, result_score = self.visualizer.process_pipeline(self.mock_image, mesh_type="solar")
 
         self.visualizer.step_1_cleanse.assert_called_once()
         self.visualizer._analyze_structure.assert_called_once()
         self.visualizer.step_2_build_out.assert_called_once()
         self.visualizer.step_3_install_screen.assert_called_once()
         self.visualizer.step_4_quality_check.assert_called_once()
-        self.assertEqual(result, self.mock_image)
+        self.assertEqual(result_img, self.mock_image)
+        self.assertEqual(result_score, 95)
 
     def test_mesh_type_logic(self):
         # Test that mesh type is passed correctly
         self.visualizer.step_1_cleanse = MagicMock(return_value=self.mock_image)
         self.visualizer._analyze_structure = MagicMock(return_value=False) # Skip build out
         self.visualizer.step_3_install_screen = MagicMock(return_value=self.mock_image)
-        self.visualizer.step_4_quality_check = MagicMock(return_value=True)
+        self.visualizer.step_4_quality_check = MagicMock(return_value=(True, 90))
 
         self.visualizer.process_pipeline(self.mock_image, mesh_type="privacy", opacity="95", color="Black")
         
         # Check if step 3 was called with correct args
+        # Note: effective_mesh_type is hardcoded to "lifestyle_environmental" inside process_pipeline now
         self.visualizer.step_3_install_screen.assert_called_with(
             self.mock_image, 
-            None, # reference_img
-            "privacy", 
+            ANY, # reference_img
+            "lifestyle_environmental", 
             opacity="95", 
             color="Black"
         )

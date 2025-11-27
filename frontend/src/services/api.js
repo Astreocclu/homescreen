@@ -11,7 +11,7 @@ const RETRY_CONFIG = {
   retryDelay: 1000,
   retryCondition: (error) => {
     return error.code === 'NETWORK_ERROR' ||
-           (error.response && error.response.status >= 500);
+      (error.response && error.response.status >= 500);
   }
 };
 
@@ -137,7 +137,7 @@ api.interceptors.response.use(
 
     // Handle network errors with retry logic
     if (RETRY_CONFIG.retryCondition(error) &&
-        (!originalRequest._retryCount || originalRequest._retryCount < RETRY_CONFIG.retries)) {
+      (!originalRequest._retryCount || originalRequest._retryCount < RETRY_CONFIG.retries)) {
 
       originalRequest._retryCount = (originalRequest._retryCount || 0) + 1;
 
@@ -188,9 +188,9 @@ const handleApiCall = async (apiCall, errorMessage = 'API call failed') => {
     // Enhanced error processing
     const processedError = {
       message: error.response?.data?.detail ||
-               error.response?.data?.message ||
-               error.message ||
-               errorMessage,
+        error.response?.data?.message ||
+        error.message ||
+        errorMessage,
       status: error.response?.status,
       data: error.response?.data,
       originalError: error
@@ -325,6 +325,13 @@ const retryVisualizationRequest = async (id) => {
   );
 };
 
+const regenerateVisualizationRequest = async (id) => {
+  return handleApiCall(
+    () => api.post(`/visualizations/${id}/regenerate/`),
+    'Failed to regenerate visualization request'
+  );
+};
+
 // Generated Images functions
 const fetchGeneratedImages = async (params = {}) => {
   return handleApiCall(
@@ -401,6 +408,7 @@ export {
   updateVisualizationRequest,
   deleteVisualizationRequest,
   retryVisualizationRequest,
+  regenerateVisualizationRequest,
 
   // Generated Images
   fetchGeneratedImages,

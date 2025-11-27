@@ -102,7 +102,7 @@ class VisualizationRequestViewSet(viewsets.ModelViewSet):
 
         # Optimize queries based on action
         if self.action == 'list':
-            queryset = queryset.select_related('screen_type', 'user')
+            queryset = queryset.select_related('screen_type', 'user').prefetch_related('results')
         elif self.action in ['retrieve', 'update', 'partial_update']:
             queryset = queryset.select_related('screen_type', 'user').prefetch_related('results')
 
@@ -196,6 +196,26 @@ class VisualizationRequestViewSet(viewsets.ModelViewSet):
         # self._trigger_ai_processing(instance)
 
         logger.info(f"VisualizationRequest retry: ID={instance.id}")
+
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['post'])
+    def regenerate(self, request, pk=None):
+        """Regenerate a visualization request."""
+        instance = self.get_object()
+
+        # Reset status and clear error message
+        instance.status = 'pending'
+        instance.error_message = ''
+        instance.progress_percentage = 0
+        instance.status_message = "Queued for regeneration..."
+        instance.save()
+
+        # Trigger AI processing
+        self._trigger_ai_processing(instance)
+
+        logger.info(f"VisualizationRequest regenerate: ID={instance.id}")
 
         serializer = self.get_serializer(instance)
         return Response(serializer.data)

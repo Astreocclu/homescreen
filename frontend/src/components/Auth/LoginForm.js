@@ -5,8 +5,7 @@ import './LoginForm.css';
 
 const LoginForm = ({ onLogin, error, loading: externalLoading = false }) => {
   const [formData, setFormData] = useState({
-    username: '',
-    password: ''
+    username: ''
   });
   const [validationErrors, setValidationErrors] = useState({});
   const [isLoading, setIsLoading] = useState(false);
@@ -34,10 +33,6 @@ const LoginForm = ({ onLogin, error, loading: externalLoading = false }) => {
 
     if (!formData.username.trim()) {
       errors.username = 'Username is required';
-    }
-
-    if (!formData.password) {
-      errors.password = 'Password is required';
     }
 
     setValidationErrors(errors);
@@ -77,19 +72,6 @@ const LoginForm = ({ onLogin, error, loading: externalLoading = false }) => {
           disabled={loading}
           fullWidth
           autoComplete="username"
-        />
-
-        <FormInput
-          label="Password"
-          name="password"
-          type="password"
-          value={formData.password}
-          onChange={handleInputChange}
-          error={validationErrors.password}
-          required
-          disabled={loading}
-          fullWidth
-          autoComplete="current-password"
         />
 
         <ErrorMessage message={error} type="error" />

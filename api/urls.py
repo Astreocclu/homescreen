@@ -3,6 +3,7 @@ from rest_framework.routers import DefaultRouter
 from . import views
 from .auth_views import (
     CustomTokenObtainPairView,
+    DevLoginView,
     CustomTokenRefreshView,
     register_user,
     logout_user,
@@ -21,7 +22,7 @@ router.register(r'ai-services', views.AIServiceViewSet, basename='aiservice')
 # The API URLs are now determined automatically by the router.
 urlpatterns = [
     # Authentication endpoints
-    path('auth/login/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('auth/login/', DevLoginView.as_view(), name='token_obtain_pair'),
     path('auth/refresh/', CustomTokenRefreshView.as_view(), name='token_refresh'),
     path('auth/register/', register_user, name='register'),
     path('auth/logout/', logout_user, name='logout'),

@@ -5,6 +5,7 @@ from django_ratelimit.decorators import ratelimit
 from django.utils.decorators import method_decorator
 from rest_framework import status, permissions
 from rest_framework.decorators import api_view, permission_classes
+from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
@@ -77,7 +78,57 @@ class CustomTokenObtainPairView(TokenObtainPairView):
                 status=status.HTTP_401_UNAUTHORIZED
             )
 
+from django.conf import settings
 
+@method_decorator(ratelimit(key='ip', rate='10/m', method='POST', block=True), name='post')
+class DevLoginView(APIView):
+    """Development login view that bypasses password check. Only available in DEBUG mode."""
+    permission_classes = [permissions.AllowAny]
+
+    def post(self, request, *args, **kwargs):
+        if not settings.DEBUG:
+            return Response(
+                {'detail': 'This endpoint is not available in production.'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
+        try:
+            username = request.data.get('username')
+            if not username:
+                return Response({'detail': 'Username is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+            # Get user or create if strictly needed, but for now let's just get
+            try:
+                user = User.objects.get(username=username)
+            except User.DoesNotExist:
+                # Optional: Auto-create user for dev convenience
+                user = User.objects.create_user(username=username, password='password123')
+                UserProfile.objects.create(user=user)
+                logger.info(f"Created new dev user: {username}")
+
+            # Generate tokens
+            refresh = RefreshToken.for_user(user)
+            access_token = refresh.access_token
+
+            # Add custom claims
+            access_token['username'] = user.username
+            access_token['email'] = user.email
+            access_token['is_staff'] = user.is_staff
+
+            logger.info(f"Successful dev login for user: {username}")
+
+            return Response({
+                'refresh': str(refresh),
+                'access': str(access_token),
+                'user': UserSerializer(user).data
+            })
+
+        except Exception as e:
+            logger.error(f"Dev login failed: {str(e)}")
+            return Response(
+                {'detail': 'Login failed'},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 class CustomTokenRefreshView(TokenRefreshView):
     """Custom JWT token refresh view with logging."""
 

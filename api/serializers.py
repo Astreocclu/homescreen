@@ -94,7 +94,7 @@ class ScreenTypeSerializer(serializers.ModelSerializer):
 class GeneratedImageSerializer(serializers.ModelSerializer):
     """Enhanced serializer for generated images."""
 
-    generated_image_url = serializers.ImageField(source='generated_image', read_only=True)
+    generated_image_url = serializers.SerializerMethodField()
     file_size_mb = serializers.ReadOnlyField()
     dimensions = serializers.ReadOnlyField()
 
@@ -102,9 +102,19 @@ class GeneratedImageSerializer(serializers.ModelSerializer):
         model = GeneratedImage
         fields = [
             'id', 'generated_image_url', 'file_size', 'file_size_mb',
-            'image_width', 'image_height', 'dimensions', 'generated_at'
+            'image_width', 'image_height', 'dimensions', 'metadata', 'generated_at'
         ]
         read_only_fields = fields
+
+    def get_generated_image_url(self, obj):
+        """Get absolute URL for the generated image."""
+        if obj.generated_image:
+            request = self.context.get('request')
+            url = obj.generated_image.url
+            if request:
+                return request.build_absolute_uri(url)
+            return url
+        return None
 
 
 class VisualizationRequestListSerializer(serializers.ModelSerializer):
@@ -118,6 +128,7 @@ class VisualizationRequestListSerializer(serializers.ModelSerializer):
     original_image_url = serializers.ImageField(source='original_image', read_only=True)
     result_count = serializers.SerializerMethodField()
     processing_duration = serializers.SerializerMethodField()
+    latest_result_url = serializers.SerializerMethodField()
     user_name = serializers.CharField(source='user.username', read_only=True)
 
     class Meta:
@@ -125,7 +136,8 @@ class VisualizationRequestListSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'user_name', 'original_image_url', 'screen_type_name',
             'status', 'created_at', 'updated_at', 'result_count',
-            'processing_duration', 'error_message', 'progress_percentage', 'status_message'
+            'processing_duration', 'error_message', 'progress_percentage', 'status_message',
+            'latest_result_url'
         ]
         read_only_fields = fields
 
@@ -140,6 +152,17 @@ class VisualizationRequestListSerializer(serializers.ModelSerializer):
             return duration.total_seconds()
         return None
 
+    def get_latest_result_url(self, obj):
+        """Get absolute URL of the latest generated image."""
+        latest_result = obj.results.first()
+        if latest_result and latest_result.generated_image:
+            request = self.context.get('request')
+            url = latest_result.generated_image.url
+            if request:
+                return request.build_absolute_uri(url)
+            return url
+        return None
+
 
 class VisualizationRequestDetailSerializer(serializers.ModelSerializer):
     """Comprehensive serializer for creating and viewing request details."""
@@ -148,6 +171,7 @@ class VisualizationRequestDetailSerializer(serializers.ModelSerializer):
     screen_type_details = ScreenTypeSerializer(source='screen_type', read_only=True)
     results = GeneratedImageSerializer(many=True, read_only=True)
     original_image_url = serializers.ImageField(source='original_image', read_only=True)
+    clean_image_url = serializers.ImageField(source='clean_image', read_only=True)
     user = UserSerializer(read_only=True)
     processing_duration = serializers.SerializerMethodField()
 
@@ -164,7 +188,7 @@ class VisualizationRequestDetailSerializer(serializers.ModelSerializer):
         model = VisualizationRequest
         fields = [
             # Read-only response fields
-            'id', 'user', 'original_image_url', 'screen_type_details',
+            'id', 'user', 'original_image_url', 'clean_image_url', 'screen_type_details',
             'status', 'created_at', 'updated_at', 'task_id', 'results',
             'processing_started_at', 'processing_completed_at', 'processing_duration',
             'error_message', 'progress_percentage', 'status_message',
@@ -173,7 +197,7 @@ class VisualizationRequestDetailSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             'id', 'user', 'status', 'created_at', 'updated_at', 'task_id',
-            'results', 'original_image_url', 'screen_type_details',
+            'results', 'original_image_url', 'clean_image_url', 'screen_type_details',
             'processing_started_at', 'processing_completed_at', 'error_message',
             'progress_percentage', 'status_message'
         ]

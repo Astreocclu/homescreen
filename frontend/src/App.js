@@ -1,17 +1,19 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { Routes, Route, Link, useNavigate, Navigate, useLocation } from 'react-router-dom';
 import './App.css';
+import ResultsPage from './pages/ResultsPage';
+import ResultDetailPage from './pages/ResultDetailPage';
 
 // Simple Login Form Component
 const LoginForm = ({ onLogin, error }) => {
   const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      await onLogin({ username, password });
+      await onLogin({ username });
     } catch (err) {
       console.error('Login error:', err);
     } finally {
@@ -40,26 +42,6 @@ const LoginForm = ({ onLogin, error }) => {
               fontSize: '16px'
             }}
             placeholder="Enter username (try: testuser)"
-          />
-        </div>
-
-        <div>
-          <label style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>
-            Password:
-          </label>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            style={{
-              width: '100%',
-              padding: '10px',
-              border: '1px solid #ddd',
-              borderRadius: '4px',
-              fontSize: '16px'
-            }}
-            placeholder="Enter password (try: password123)"
           />
         </div>
 
@@ -95,14 +77,15 @@ const LoginForm = ({ onLogin, error }) => {
       <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#f8f9fa', borderRadius: '4px' }}>
         <h3>💡 Demo Credentials:</h3>
         <p><strong>Username:</strong> testuser</p>
-        <p><strong>Password:</strong> password123</p>
+        <p>No password required!</p>
       </div>
     </div>
   );
 };
 
 // Image Upload Component
-const ImageUploadView = ({ user, screenTypes, onBack }) => {
+const ImageUploadView = ({ user, screenTypes }) => {
+  const navigate = useNavigate();
   const [selectedFile, setSelectedFile] = useState(null);
   const [selectedScreenType, setSelectedScreenType] = useState('');
   const [selectedOpacity, setSelectedOpacity] = useState('95');
@@ -115,7 +98,7 @@ const ImageUploadView = ({ user, screenTypes, onBack }) => {
   const [statusMessage, setStatusMessage] = useState('');
 
   // Poll for progress updates
-  React.useEffect(() => {
+  useEffect(() => {
     if (!processingRequest) return;
 
     const pollProgress = async () => {
@@ -137,6 +120,10 @@ const ImageUploadView = ({ user, screenTypes, onBack }) => {
             setProcessingRequest(null);
             setProgress(100);
             setStatusMessage('All visualizations ready!');
+            // Redirect to the detail page on completion
+            setTimeout(() => {
+              navigate(`/results/${data.id}`);
+            }, 1000);
           } else if (data.status === 'failed') {
             setMessage(`❌ Processing failed: ${data.error_message || 'Unknown error'}`);
             setProcessingRequest(null);
@@ -151,7 +138,7 @@ const ImageUploadView = ({ user, screenTypes, onBack }) => {
 
     const interval = setInterval(pollProgress, 1000); // Poll every second
     return () => clearInterval(interval);
-  }, [processingRequest]);
+  }, [processingRequest, navigate]);
 
   const handleFileSelect = (file) => {
     if (file && file.type.startsWith('image/')) {
@@ -232,7 +219,10 @@ const ImageUploadView = ({ user, screenTypes, onBack }) => {
 
   return (
     <div>
-      <h2>📤 Upload Image for Visualization</h2>
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
+        <Link to="/" style={{ marginRight: '15px', textDecoration: 'none', fontSize: '24px' }}>←</Link>
+        <h2>📤 Upload Image for Visualization</h2>
+      </div>
 
       <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
         {/* File Upload Area */}
@@ -273,7 +263,8 @@ const ImageUploadView = ({ user, screenTypes, onBack }) => {
               <p style={{ color: '#666' }}>or click to browse files</p>
               <p style={{ color: '#999', fontSize: '14px' }}>Supports: JPG, PNG, GIF, WebP (max 10MB)</p>
             </div>
-          )}
+          )
+          }
         </div>
 
         {/* Screen Type Selection */}
@@ -442,10 +433,13 @@ const ImageUploadView = ({ user, screenTypes, onBack }) => {
 };
 
 // Screen Types View Component
-const ScreenTypesView = ({ screenTypes, onBack }) => {
+const ScreenTypesView = ({ screenTypes }) => {
   return (
     <div>
-      <h2>🖥️ Available Screen Types</h2>
+      <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px' }}>
+        <Link to="/" style={{ marginRight: '15px', textDecoration: 'none', fontSize: '24px' }}>←</Link>
+        <h2>🖥️ Available Screen Types</h2>
+      </div>
       <div style={{ display: 'grid', gap: '20px', marginTop: '20px' }}>
         {screenTypes.map(type => (
           <div key={type.id} style={{
@@ -467,153 +461,12 @@ const ScreenTypesView = ({ screenTypes, onBack }) => {
   );
 };
 
-// Results View Component
-const ResultsView = ({ user, onBack }) => {
-  const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  React.useEffect(() => {
-    const fetchResults = async () => {
-      try {
-        const token = localStorage.getItem('access_token');
-        const response = await fetch('/api/visualizations/', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-        if (response.ok) {
-          const data = await response.json();
-          setResults(data.results || []);
-        }
-      } catch (error) {
-        console.error('Error fetching results:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchResults();
-  }, []);
-
-  if (loading) {
-    return <div>⏳ Loading your visualization results...</div>;
-  }
-
-  return (
-    <div>
-      <h2>📊 Your Visualization Results</h2>
-      {results.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '40px', backgroundColor: '#f8f9fa', borderRadius: '8px', marginTop: '20px' }}>
-          <p style={{ fontSize: '48px', margin: '0 0 20px 0' }}>📭</p>
-          <h3>No visualizations yet</h3>
-          <p>Upload your first image to get started!</p>
-        </div>
-      ) : (
-        <div style={{ display: 'grid', gap: '20px', marginTop: '20px' }}>
-          {results.map(result => (
-            <div key={result.id} style={{
-              backgroundColor: '#f8f9fa',
-              padding: '20px',
-              borderRadius: '8px',
-              border: '1px solid #dee2e6'
-            }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3>Visualization #{result.id}</h3>
-                <span style={{
-                  padding: '4px 8px',
-                  borderRadius: '4px',
-                  fontSize: '12px',
-                  backgroundColor: result.status === 'completed' ? '#d4edda' : '#fff3cd',
-                  color: result.status === 'completed' ? '#155724' : '#856404'
-                }}>
-                  {result.status}
-                </span>
-              </div>
-              <p><strong>Screen Type:</strong> {result.screen_type_name}</p>
-              <p><strong>Created:</strong> {new Date(result.created_at).toLocaleString()}</p>
-              <p><strong>Generated Images:</strong> {result.result_count}</p>
-
-              {/* Original Image */}
-              {result.original_image_url && (
-                <div style={{ marginTop: '15px' }}>
-                  <h4>📷 Original Image:</h4>
-                  <img
-                    src={result.original_image_url}
-                    alt="Original"
-                    style={{
-                      maxWidth: '200px',
-                      maxHeight: '150px',
-                      objectFit: 'cover',
-                      borderRadius: '4px',
-                      border: '2px solid #007bff'
-                    }}
-                  />
-                </div>
-              )}
-
-              {/* Generated Images */}
-              {result.results && result.results.length > 0 && (
-                <div style={{ marginTop: '20px' }}>
-                  <h4>🎨 Generated Visualizations:</h4>
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                    gap: '15px',
-                    marginTop: '10px'
-                  }}>
-                    {result.results.map((generatedImg, index) => (
-                      <div key={generatedImg.id} style={{
-                        border: '1px solid #ddd',
-                        borderRadius: '8px',
-                        padding: '10px',
-                        backgroundColor: '#fff'
-                      }}>
-                        <img
-                          src={generatedImg.generated_image_url}
-                          alt={`Generated ${index + 1}`}
-                          style={{
-                            width: '100%',
-                            height: '150px',
-                            objectFit: 'cover',
-                            borderRadius: '4px',
-                            marginBottom: '8px'
-                          }}
-                        />
-                        <p style={{ fontSize: '12px', margin: '0', color: '#666' }}>
-                          {generatedImg.dimensions} • {generatedImg.file_size_mb} MB
-                        </p>
-                        <a
-                          href={generatedImg.generated_image_url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          style={{
-                            fontSize: '12px',
-                            color: '#007bff',
-                            textDecoration: 'none'
-                          }}
-                        >
-                          View Full Size →
-                        </a>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-};
-
 // Simple Dashboard Component
 const Dashboard = ({ user, onLogout }) => {
-  const [currentView, setCurrentView] = useState('dashboard');
   const [screenTypes, setScreenTypes] = useState([]);
-  const [loading, setLoading] = useState(false);
 
   // Fetch screen types when component mounts
-  React.useEffect(() => {
+  useEffect(() => {
     const fetchScreenTypes = async () => {
       try {
         const response = await fetch('/api/screentypes/');
@@ -633,21 +486,6 @@ const Dashboard = ({ user, onLogout }) => {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
         <h1>🏠 Homescreen Visualizer Dashboard</h1>
         <div style={{ display: 'flex', gap: '10px' }}>
-          {currentView !== 'dashboard' && (
-            <button
-              onClick={() => setCurrentView('dashboard')}
-              style={{
-                padding: '8px 16px',
-                backgroundColor: '#6c757d',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer'
-              }}
-            >
-              ← Back to Dashboard
-            </button>
-          )}
           <button
             onClick={onLogout}
             style={{
@@ -664,88 +502,89 @@ const Dashboard = ({ user, onLogout }) => {
         </div>
       </div>
 
-      {currentView === 'dashboard' && (
-        <>
-          <div style={{ backgroundColor: '#e8f5e8', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>
-            <h2>✅ Welcome, {user.username}!</h2>
-            <p>You have successfully logged into the Homescreen Visualizer.</p>
+      <div style={{ backgroundColor: '#e8f5e8', padding: '20px', borderRadius: '8px', marginBottom: '20px' }}>
+        <h2>✅ Welcome, {user.username}!</h2>
+        <p>You have successfully logged into the Homescreen Visualizer.</p>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
+        <div style={{ backgroundColor: '#f8f9fa', padding: '20px', borderRadius: '8px', border: '1px solid #dee2e6' }}>
+          <h3>👤 User Profile</h3>
+          <p><strong>Username:</strong> {user.username}</p>
+          <p><strong>Email:</strong> {user.email}</p>
+          <p><strong>Member since:</strong> {new Date(user.date_joined).toLocaleDateString()}</p>
+          <p><strong>Total Requests:</strong> {user.profile?.total_requests || 0}</p>
+        </div>
+
+        <div style={{ backgroundColor: '#f8f9fa', padding: '20px', borderRadius: '8px', border: '1px solid #dee2e6' }}>
+          <h3>🚀 Quick Actions</h3>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+            <Link
+              to="/upload"
+              style={{
+                padding: '10px',
+                backgroundColor: '#28a745',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                textAlign: 'center',
+                textDecoration: 'none'
+              }}
+            >
+              📤 Upload Image
+            </Link>
+            <Link
+              to="/results"
+              style={{
+                padding: '10px',
+                backgroundColor: '#17a2b8',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                textAlign: 'center',
+                textDecoration: 'none'
+              }}
+            >
+              📊 View Results
+            </Link>
+            <Link
+              to="/screentypes"
+              style={{
+                padding: '10px',
+                backgroundColor: '#6f42c1',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                textAlign: 'center',
+                textDecoration: 'none'
+              }}
+            >
+              🖥️ Screen Types ({screenTypes.length})
+            </Link>
           </div>
+        </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '20px' }}>
-            <div style={{ backgroundColor: '#f8f9fa', padding: '20px', borderRadius: '8px', border: '1px solid #dee2e6' }}>
-              <h3>👤 User Profile</h3>
-              <p><strong>Username:</strong> {user.username}</p>
-              <p><strong>Email:</strong> {user.email}</p>
-              <p><strong>Member since:</strong> {new Date(user.date_joined).toLocaleDateString()}</p>
-              <p><strong>Total Requests:</strong> {user.profile?.total_requests || 0}</p>
-            </div>
+        <div style={{ backgroundColor: '#f8f9fa', padding: '20px', borderRadius: '8px', border: '1px solid #dee2e6' }}>
+          <h3>📊 API Status</h3>
+          <p>✅ Authentication: Working</p>
+          <p>✅ Backend API: Connected</p>
+          <p>✅ Screen Types: {screenTypes.length} available</p>
+          <p>✅ Database: Connected</p>
+        </div>
+      </div>
 
-            <div style={{ backgroundColor: '#f8f9fa', padding: '20px', borderRadius: '8px', border: '1px solid #dee2e6' }}>
-              <h3>🚀 Quick Actions</h3>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                <button
-                  onClick={() => setCurrentView('upload')}
-                  style={{ padding: '10px', backgroundColor: '#28a745', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                >
-                  📤 Upload Image
-                </button>
-                <button
-                  onClick={() => setCurrentView('results')}
-                  style={{ padding: '10px', backgroundColor: '#17a2b8', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                >
-                  📊 View Results
-                </button>
-                <button
-                  onClick={() => setCurrentView('screentypes')}
-                  style={{ padding: '10px', backgroundColor: '#6f42c1', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                >
-                  🖥️ Screen Types ({screenTypes.length})
-                </button>
-              </div>
-            </div>
-
-            <div style={{ backgroundColor: '#f8f9fa', padding: '20px', borderRadius: '8px', border: '1px solid #dee2e6' }}>
-              <h3>📊 API Status</h3>
-              <p>✅ Authentication: Working</p>
-              <p>✅ Backend API: Connected</p>
-              <p>✅ Screen Types: 3 available</p>
-              <p>✅ Database: Connected</p>
-            </div>
-          </div>
-
-          <div style={{ marginTop: '30px', padding: '20px', backgroundColor: '#fff3cd', borderRadius: '8px', border: '1px solid #ffeaa7' }}>
-            <h3>🎯 Next Steps:</h3>
-            <ul>
-              <li>Upload an image to generate homescreen visualizations</li>
-              <li>Select from available screen types (Security, Entertainment, Smart Home)</li>
-              <li>View and manage your visualization results</li>
-              <li>Explore the admin panel at <a href="/admin" target="_blank">/admin</a></li>
-            </ul>
-          </div>
-        </>
-      )}
-
-      {currentView === 'upload' && (
-        <ImageUploadView
-          user={user}
-          screenTypes={screenTypes}
-          onBack={() => setCurrentView('dashboard')}
-        />
-      )}
-
-      {currentView === 'screentypes' && (
-        <ScreenTypesView
-          screenTypes={screenTypes}
-          onBack={() => setCurrentView('dashboard')}
-        />
-      )}
-
-      {currentView === 'results' && (
-        <ResultsView
-          user={user}
-          onBack={() => setCurrentView('dashboard')}
-        />
-      )}
+      <div style={{ marginTop: '30px', padding: '20px', backgroundColor: '#fff3cd', borderRadius: '8px', border: '1px solid #ffeaa7' }}>
+        <h3>🎯 Next Steps:</h3>
+        <ul>
+          <li>Upload an image to generate homescreen visualizations</li>
+          <li>Select from available screen types (Security, Entertainment, Smart Home)</li>
+          <li>View and manage your visualization results</li>
+          <li>Explore the admin panel at <a href="/admin" target="_blank">/admin</a></li>
+        </ul>
+      </div>
     </div>
   );
 };
@@ -754,6 +593,44 @@ function App() {
   const [user, setUser] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [screenTypes, setScreenTypes] = useState([]);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  // Check for existing token on mount
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    if (token && !user) {
+      // Ideally verify token with backend, but for now just assume valid if present
+      // Or fetch user profile
+      // For this demo, we'll just set a dummy user or try to fetch profile if we had an endpoint
+      // Let's just clear it if we don't have user data, forcing login, or better:
+      // We can't easily reconstruct the user object without an API call.
+      // Let's rely on the user logging in for now, or if we want persistence:
+      // We should add a /api/auth/me/ endpoint.
+      // For now, let's just leave it. If they refresh, they might be logged out.
+      // To fix refresh issue, let's try to fetch user details or just keep them logged in
+      // if we had the user details in localStorage too (not secure but works for demo)
+      const storedUser = localStorage.getItem('user_data');
+      if (storedUser) {
+        setUser(JSON.parse(storedUser));
+      }
+    }
+
+    // Fetch screen types for global use
+    const fetchScreenTypes = async () => {
+      try {
+        const response = await fetch('/api/screentypes/');
+        if (response.ok) {
+          const data = await response.json();
+          setScreenTypes(data.results || []);
+        }
+      } catch (error) {
+        console.error('Error fetching screen types:', error);
+      }
+    };
+    fetchScreenTypes();
+  }, []);
 
   const handleLogin = async (credentials) => {
     setLoading(true);
@@ -771,9 +648,11 @@ function App() {
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
-        // Store tokens in localStorage for future requests
+        // Store tokens in localStorage
         localStorage.setItem('access_token', data.access);
         localStorage.setItem('refresh_token', data.refresh);
+        localStorage.setItem('user_data', JSON.stringify(data.user));
+        navigate('/');
       } else {
         const errorData = await response.json();
         setError(errorData.detail || 'Login failed');
@@ -789,16 +668,56 @@ function App() {
     setUser(null);
     localStorage.removeItem('access_token');
     localStorage.removeItem('refresh_token');
+    localStorage.removeItem('user_data');
+    navigate('/login');
+  };
+
+  // Protected Route Wrapper
+  const ProtectedRoute = ({ children }) => {
+    if (!user) {
+      return <Navigate to="/login" state={{ from: location }} replace />;
+    }
+    return children;
   };
 
   return (
     <div className="App">
       <div style={{ minHeight: '100vh', backgroundColor: '#f5f5f5', padding: '20px' }}>
-        {user ? (
-          <Dashboard user={user} onLogout={handleLogout} />
-        ) : (
-          <LoginForm onLogin={handleLogin} error={error} loading={loading} />
-        )}
+        <Routes>
+          <Route path="/login" element={
+            user ? <Navigate to="/" replace /> : <LoginForm onLogin={handleLogin} error={error} loading={loading} />
+          } />
+
+          <Route path="/" element={
+            <ProtectedRoute>
+              <Dashboard user={user} onLogout={handleLogout} />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/upload" element={
+            <ProtectedRoute>
+              <ImageUploadView user={user} screenTypes={screenTypes} />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/screentypes" element={
+            <ProtectedRoute>
+              <ScreenTypesView screenTypes={screenTypes} />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/results" element={
+            <ProtectedRoute>
+              <ResultsPage />
+            </ProtectedRoute>
+          } />
+
+          <Route path="/results/:id" element={
+            <ProtectedRoute>
+              <ResultDetailPage />
+            </ProtectedRoute>
+          } />
+        </Routes>
       </div>
     </div>
   );
